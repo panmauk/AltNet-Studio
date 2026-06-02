@@ -136,6 +136,7 @@ func runElevatedScript(script string) error {
 		tmpPath,
 	)
 	cmd := exec.Command("powershell", "-NoProfile", "-Command", wrapper)
+	hideWindow(cmd)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("elevated powershell: %w (output: %s)", err, string(out))

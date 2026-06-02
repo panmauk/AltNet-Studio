@@ -474,6 +474,7 @@ func (s *Supervisor) Start() error {
 	args = append(args, s.cfg.ExtraArgs...)
 
 	cmd := exec.Command(s.cfg.BinaryPath, args...)
+	hideWindow(cmd) // no flashing console window on Windows
 	stdout, _ := cmd.StdoutPipe()
 	stderr, _ := cmd.StderrPipe()
 	// The daemon's CLI reads from stdin for its interactive prompt and

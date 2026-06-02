@@ -43,12 +43,14 @@ const daemonDNSAddr = "127.0.0.53:53"
 // We use Get-DnsClientNrptRule which is read-only and works without
 // elevation. Empty / "no rules" output means not installed.
 func nrptRuleInstalledImpl() bool {
-	out, err := exec.Command("powershell", "-NoProfile",
+	cmd := exec.Command("powershell", "-NoProfile",
 		"-Command",
 		`(Get-DnsClientNrptRule -ErrorAction SilentlyContinue | `+
 			`Where-Object { $_.Namespace -eq '`+nrptNamespace+`' -and `+
 			`$_.NameServers -contains '`+nrptServer+`' }) -ne $null`,
-	).Output()
+	)
+	hideWindow(cmd)
+	out, err := cmd.Output()
 	if err != nil {
 		return false
 	}
