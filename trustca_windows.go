@@ -100,6 +100,7 @@ foreach ($s in $stores) {
 // the same effect.
 func powershell(script string) (string, error) {
 	cmd := exec.Command("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script)
+	hideWindow(cmd)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return string(out), errors.New(strings.TrimSpace(string(out)))
