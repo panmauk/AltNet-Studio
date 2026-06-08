@@ -265,3 +265,9 @@ func (c *BackendClient) AdminDecideReport(token string, id int64, decision, note
 func (c *BackendClient) AdminRevoke(token, name string) error {
 	return c.post("/v1/admin/revoke", map[string]any{"name": name}, nil, token)
 }
+
+// UserTakedown removes the signed-in user's own approved site network-wide via
+// the backend authority bridge. The backend checks ownership before revoking.
+func (c *BackendClient) UserTakedown(token, name string) error {
+	return c.post("/v1/domains/takedown", map[string]any{"name": name}, nil, token)
+}

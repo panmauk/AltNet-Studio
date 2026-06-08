@@ -708,16 +708,18 @@ func (a *App) SiteAnalyticsBatch(names []string) ([]*SiteAnalytics, error) {
 	return out, nil
 }
 
-// TakeDownSite removes a registration from the local daemon. Returns
-// quickly; the DHT record will outlive this call up to its TTL.
+// TakeDownSite lets a signed-in publisher remove their own approved site
+// network-wide. It goes through the backend authority bridge so the revoke is
+// signed by the canonical registrar, not by this machine's local daemon.
 func (a *App) TakeDownSite(name string) error {
-	if err := a.ensureDaemon(); err != nil {
+	tok, err := a.requireToken()
+	if err != nil {
 		return err
 	}
-	a.daemonMu.Lock()
-	dc := a.daemonClient
-	a.daemonMu.Unlock()
-	return dc.Unregister(name)
+	if err := a.backend.UserTakedown(tok, name); err != nil {
+		return a.translate(err)
+	}
+	return nil
 }
 
 // GatewayAddr lets the frontend know whether the daemon got port 80
