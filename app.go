@@ -899,8 +899,7 @@ func (a *App) PublishSite(name string, paths []string) (*PublishResult, error) {
 	if err := waitForTCP(cfg.RegistrarAddr, 6*time.Second); err != nil {
 		return nil, fmt.Errorf("daemon registrar at %s never came up: %w", cfg.RegistrarAddr, err)
 	}
-	user := a.CurrentUser()
-	if user == nil {
+	if a.CurrentUser() == nil {
 		return nil, errors.New("not signed in")
 	}
 	publishDir, cleanup, err := stagePublishDir(paths)
@@ -912,25 +911,40 @@ func (a *App) PublishSite(name string, paths []string) (*PublishResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("publish: %w", err)
 	}
-	reg, err := dc.Register(name, pub.Root, user.Email)
-	if err != nil {
-		// On a re-publish the name is already registered locally;
-		// repoint it instead. The error text is the daemon's own
-		// response, so substring matching is good enough.
-		if strings.Contains(strings.ToLower(err.Error()), "already registered") {
-			reg, err = dc.Update(name, pub.Root)
-		}
-		if err != nil {
-			return nil, fmt.Errorf("register: %w", err)
-		}
-	}
+	// IMPORTANT: we do NOT register the name on the local daemon here.
+	// Under permissioned naming only the seed authority (reached via the
+	// backend) may bind a name -> root; a local-signed record is rejected
+	// network-wide AND its republish loop would clobber the authority's
+	// record. PublishSite only chunks the content into the DHT and returns
+	// the root. The caller binds it: the request flow on admin approval,
+	// or PublishToOwnedDomain for a domain you already own.
 	return &PublishResult{
 		Root:       pub.Root,
 		EntryCount: pub.EntryCount,
-		Name:       reg.Name,
-		Version:    reg.Version,
+		Name:       name,
 		GatewayURL: cfg.GatewayAddr,
 	}, nil
+}
+
+// PublishToOwnedDomain publishes content to a domain the signed-in user
+// already owns. It chunks the folder into the DHT (PublishSite), then asks
+// the backend to bind name -> root via the seed authority — authority-
+// signed, so it resolves network-wide. No admin re-review: you own the
+// name. (The initial request flow carries content through admin approval
+// instead.)
+func (a *App) PublishToOwnedDomain(name string, paths []string) (*PublishResult, error) {
+	tok, err := a.requireToken()
+	if err != nil {
+		return nil, err
+	}
+	res, err := a.PublishSite(name, paths)
+	if err != nil {
+		return nil, err
+	}
+	if err := a.backend.UserPublish(tok, name, res.Root); err != nil {
+		return nil, a.translate(err)
+	}
+	return res, nil
 }
 
 // stagePublishDir resolves a list of user-picked paths into a single

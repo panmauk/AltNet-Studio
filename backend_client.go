@@ -271,3 +271,9 @@ func (c *BackendClient) AdminRevoke(token, name string) error {
 func (c *BackendClient) UserTakedown(token, name string) error {
 	return c.post("/v1/domains/takedown", map[string]any{"name": name}, nil, token)
 }
+
+// UserPublish binds the signed-in user's own approved domain to a content
+// root, authority-signed, via the backend. Ownership is checked server-side.
+func (c *BackendClient) UserPublish(token, name, root string) error {
+	return c.post("/v1/domains/publish", map[string]any{"name": name, "root": root}, nil, token)
+}
