@@ -6,7 +6,7 @@ import {
     RequestPasswordReset, ConfirmPasswordReset,
     EnableNodeMode, DisableNodeMode, IsNodeMode, GetNodeStatus,
     RequestDomain, MyDomains, AdminPending, AdminDecide,
-    PickDirectory, PickFiles, PublishSite, OpenURL,
+    PickDirectory, PickFiles, PublishSite, PublishToOwnedDomain, OpenURL,
     HostsEntryStatus, InstallHostsEntry, RemoveHostsEntry,
     SiteAnalyticsBatch, TakeDownSite, GatewayAddr, GatewayTLSAddr,
     HTTPSReady, CATrusted, EnableHTTPS, DisableHTTPS,
@@ -1088,7 +1088,7 @@ function publishFlow(row) {
         publishBtn.innerHTML = '';
         publishBtn.append(el('span', { class: 'spinner' }), text(' Publishing…'));
         try {
-            const res = await PublishSite(row.name, items.map(it => it.path));
+            const res = await PublishToOwnedDomain(row.name, items.map(it => it.path));
             cleanup();
             showPublishedBanner(res);
             // Make sure the home card reflects this even on first publish.
@@ -1399,7 +1399,7 @@ function siteCard(row) {
         }, 'ghost'));
     }
     actions.append(button('Take down', async (ev) => {
-        if (!confirm(`Take down ${row.name}? This stops serving it from this node. The DHT record will persist until its TTL — other nodes may still serve it briefly.`)) return;
+        if (!confirm(`Take down ${row.name}? This removes it from the network — a signed deletion purges its content from nodes and frees the name. You'd have to request it again to bring it back.`)) return;
         await runBusy(ev.target, 'Taking down…', async () => {
             try { await TakeDownSite(row.name); }
             catch (err) {
